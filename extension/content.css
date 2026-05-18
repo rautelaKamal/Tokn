@@ -1,0 +1,201 @@
+/* Tokn floating panel — injected on AI sites only */
+.tokn-panel {
+  position: fixed;
+  z-index: 2147483646;
+  width: min(380px, calc(100vw - 24px));
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #e8eaed;
+  background: linear-gradient(145deg, #1a1d23 0%, #12141a 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(0, 0, 0, 0.2);
+  opacity: 0;
+  transform: translateY(6px);
+  pointer-events: none;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+
+.tokn-panel.tokn-panel--visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.tokn-panel.tokn-panel--hidden {
+  display: none !important;
+}
+
+.tokn-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.tokn-panel__brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: #fff;
+}
+
+.tokn-panel__logo {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #052e16;
+}
+
+.tokn-panel__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  color: #4ade80;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.tokn-panel__close {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #9aa0a6;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tokn-panel__close:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.tokn-panel__body {
+  padding: 10px 12px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.tokn-panel__label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #9aa0a6;
+  margin-bottom: 6px;
+}
+
+.tokn-panel__text {
+  margin: 0;
+  color: #f1f3f4;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.tokn-panel__meta {
+  display: flex;
+  gap: 12px;
+  padding: 0 12px 8px;
+  font-size: 11px;
+  color: #9aa0a6;
+}
+
+.tokn-panel__meta strong {
+  color: #cbd5e1;
+}
+
+.tokn-panel__footer {
+  display: flex;
+  gap: 8px;
+  padding: 8px 12px 12px;
+}
+
+.tokn-panel__btn {
+  flex: 1;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.tokn-panel__btn:active {
+  transform: scale(0.98);
+}
+
+.tokn-panel__btn--primary {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #052e16;
+}
+
+.tokn-panel__btn--primary:hover {
+  filter: brightness(1.08);
+}
+
+.tokn-panel__btn--ghost {
+  background: rgba(255, 255, 255, 0.06);
+  color: #e8eaed;
+}
+
+.tokn-panel__btn--ghost:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.tokn-panel__status {
+  padding: 8px 12px 12px;
+  font-size: 11px;
+  color: #9aa0a6;
+  text-align: center;
+}
+
+.tokn-panel__status--error {
+  color: #f87171;
+}
+
+.tokn-panel__loading {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-top-color: #4ade80;
+  border-radius: 50%;
+  animation: tokn-spin 0.7s linear infinite;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+
+@keyframes tokn-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

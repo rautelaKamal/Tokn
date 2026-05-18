@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tokn</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header class="popup-header">
+      <div class="popup-logo">T</div>
+      <div>
+        <h1>Tokn</h1>
+        <p class="popup-subtitle">Prompt optimizer</p>
+      </div>
+    </header>
+
+    <section class="popup-card">
+      <div class="popup-row">
+        <span class="popup-label">Optimizer</span>
+        <label class="toggle">
+          <input type="checkbox" id="enabled-toggle" checked />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <p class="popup-hint" id="status-hint">Active on supported AI sites</p>
+    </section>
+
+    <section class="popup-card popup-stats">
+      <p class="popup-label">Today&apos;s savings</p>
+      <p class="popup-stat" id="tokens-saved">0</p>
+      <p class="popup-stat-label">tokens saved</p>
+    </section>
+
+    <section class="popup-card">
+      <p class="popup-label">Detected site</p>
+      <p class="popup-site" id="detected-site">Not on a supported page</p>
+    </section>
+
+    <footer class="popup-footer">
+      <span>Backend:</span>
+      <code id="api-url">localhost:8000</code>
+    </footer>
+
+    <script src="popup.js" type="module"></script>
+  </body>
+</html>
