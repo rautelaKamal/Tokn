@@ -98,6 +98,7 @@ body {
   color: #f1f3f4;
 }
 
+/* Toggle switch */
 .toggle {
   position: relative;
   display: inline-block;
@@ -140,6 +141,55 @@ body {
   transform: translateX(20px);
 }
 
+/* API key input */
+.popup-api-key-row {
+  margin-top: 8px;
+  gap: 6px;
+}
+
+.popup-input {
+  flex: 1;
+  padding: 6px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  background: #12141a;
+  color: #e8eaed;
+  font-size: 11px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.popup-input:focus {
+  border-color: rgba(34, 197, 94, 0.5);
+}
+
+.popup-input::placeholder {
+  color: #4b5563;
+}
+
+.popup-save-btn {
+  padding: 6px 10px;
+  border: none;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #052e16;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.15s;
+  white-space: nowrap;
+}
+
+.popup-save-btn:hover {
+  filter: brightness(1.1);
+}
+
+.popup-save-btn:active {
+  transform: scale(0.97);
+}
+
+/* Footer */
 .popup-footer {
   padding: 12px 16px 14px;
   font-size: 10px;
@@ -151,5 +201,19 @@ body {
 
 .popup-footer code {
   font-size: 10px;
+  color: #9aa0a6;
+}
+
+.popup-shortcut {
+  margin-left: auto;
+}
+
+.popup-shortcut kbd {
+  padding: 2px 5px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  font-size: 9px;
+  font-family: inherit;
   color: #9aa0a6;
 }

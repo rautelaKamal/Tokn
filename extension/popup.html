@@ -37,9 +37,27 @@
       <p class="popup-site" id="detected-site">Not on a supported page</p>
     </section>
 
+    <section class="popup-card">
+      <p class="popup-label">API key</p>
+      <div class="popup-row popup-api-key-row">
+        <input
+          type="password"
+          id="api-key-input"
+          class="popup-input"
+          placeholder="Leave empty for dev mode"
+          autocomplete="off"
+        />
+        <button type="button" id="api-key-save" class="popup-save-btn">Save</button>
+      </div>
+      <p class="popup-hint" id="api-key-hint">Optional — required when backend auth is enabled</p>
+    </section>
+
     <footer class="popup-footer">
       <span>Backend:</span>
       <code id="api-url">localhost:8000</code>
+      <span class="popup-shortcut">
+        <kbd id="shortcut-key">⌘+Shift+T</kbd>
+      </span>
     </footer>
 
     <script src="popup.js" type="module"></script>

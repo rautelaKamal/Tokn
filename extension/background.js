@@ -9,7 +9,10 @@ const STORAGE_KEYS = {
   tokensToday: "tokn_tokens_saved_today",
   tokensDate: "tokn_tokens_saved_date",
   lastSite: "tokn_last_site",
+  apiKey: "tokn_api_key",
 };
+
+// ---------- Install ----------
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.storage.local.get(
@@ -31,6 +34,8 @@ chrome.runtime.onInstalled.addListener(() => {
     }
   );
 });
+
+// ---------- Message router ----------
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message?.type === "TOKn_OPTIMIZE") {
@@ -57,6 +62,13 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return true;
   }
 
+  if (message?.type === "TOKn_SET_API_KEY") {
+    chrome.storage.local.set({ [STORAGE_KEYS.apiKey]: message.apiKey || "" }, () => {
+      sendResponse({ ok: true });
+    });
+    return true;
+  }
+
   if (message?.type === "TOKn_SITE_DETECTED") {
     chrome.storage.local.set(
       {
@@ -75,12 +87,15 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   return false;
 });
 
+// ---------- Optimize handler ----------
+
 async function handleOptimize({ prompt, siteId, siteName }) {
-  const { [STORAGE_KEYS.enabled]: enabled } = await storageGet([
+  const data = await storageGet([
     STORAGE_KEYS.enabled,
+    STORAGE_KEYS.apiKey,
   ]);
 
-  if (enabled === false) {
+  if (data[STORAGE_KEYS.enabled] === false) {
     return { ok: false, error: "Tokn is turned off" };
   }
 
@@ -99,10 +114,17 @@ async function handleOptimize({ prompt, siteId, siteName }) {
     });
   }
 
+  // Build request headers — include API key if configured
+  const headers = { "Content-Type": "application/json" };
+  const apiKey = data[STORAGE_KEYS.apiKey];
+  if (apiKey) {
+    headers["X-Tokn-Key"] = apiKey;
+  }
+
   const url = `${TOKN_CONFIG.API_BASE_URL}${TOKN_CONFIG.OPTIMIZE_PATH}`;
   const response = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify({ prompt: trimmed }),
   });
 
@@ -120,15 +142,18 @@ async function handleOptimize({ prompt, siteId, siteName }) {
     return { ok: false, error: String(detail) };
   }
 
-  const data = await response.json();
-  const tokensSaved = Number(data.tokens_saved) || 0;
+  const result = await response.json();
+  const tokensSaved = Number(result.tokens_saved) || 0;
 
   if (tokensSaved > 0) {
-    await addTokensSavedToday(tokensSaved);
+    const newTotal = await addTokensSavedToday(tokensSaved);
+    updateBadge(newTotal);
   }
 
-  return { ok: true, data };
+  return { ok: true, data: result };
 }
+
+// ---------- State ----------
 
 async function getExtensionState() {
   const data = await storageGet([
@@ -143,6 +168,8 @@ async function getExtensionState() {
     data[STORAGE_KEYS.tokensDate]
   );
 
+  updateBadge(tokensToday);
+
   return {
     ok: true,
     enabled: data[STORAGE_KEYS.enabled] !== false,
@@ -150,6 +177,8 @@ async function getExtensionState() {
     lastSite: data[STORAGE_KEYS.lastSite] || null,
   };
 }
+
+// ---------- Token counter ----------
 
 async function addTokensSavedToday(delta) {
   const data = await storageGet([
@@ -182,6 +211,22 @@ async function ensureTodayBucket(storedTokens, storedDate) {
     dateKey,
   };
 }
+
+// ---------- Badge ----------
+
+function updateBadge(tokensSaved) {
+  const text = tokensSaved > 0 ? formatBadgeNumber(tokensSaved) : "";
+  chrome.action.setBadgeText({ text }).catch(() => {});
+  chrome.action.setBadgeBackgroundColor({ color: "#22c55e" }).catch(() => {});
+}
+
+function formatBadgeNumber(n) {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  return String(n);
+}
+
+// ---------- Helpers ----------
 
 function todayKey() {
   return new Date().toISOString().slice(0, 10);

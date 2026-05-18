@@ -199,3 +199,20 @@
     transform: rotate(360deg);
   }
 }
+
+.tokn-panel__shortcut {
+  padding: 4px 12px 10px;
+  font-size: 10px;
+  color: #4b5563;
+  text-align: center;
+}
+
+.tokn-panel__shortcut kbd {
+  padding: 1px 4px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 9px;
+  font-family: inherit;
+  color: #6b7280;
+}

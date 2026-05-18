@@ -22,12 +22,23 @@ class Settings(BaseSettings):
         default_factory=lambda: [
             "http://localhost:5173",
             "http://localhost:3000",
+            "chrome-extension://*",
         ]
     )
 
     anthropic_api_key: str = ""
     anthropic_model: str = "claude-sonnet-4-20250514"
     anthropic_max_tokens: int = 1024
+
+    # Simple API-key auth for extension → backend calls
+    tokn_api_key: str = ""  # Set in .env; empty = auth disabled (dev only)
+
+    # Rate limiting
+    rate_limit: str = "10/minute"
+
+    # Prompt cache
+    prompt_cache_maxsize: int = 256
+    prompt_cache_ttl_seconds: int = 3600
 
     tiktoken_encoding: str = "cl100k_base"
 

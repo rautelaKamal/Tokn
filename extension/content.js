@@ -1,11 +1,15 @@
 /**
  * Tokn content script — detects AI inputs, debounces prompts, shows floating panel.
+ *
+ * ⚠️  SITES is duplicated from config.js because content scripts cannot use
+ *     ES module imports. If you update selectors in config.js, mirror the
+ *     change here.
  */
 (function () {
   "use strict";
 
   const DEBOUNCE_MS = 800;
-  const MIN_PROMPT_LENGTH = 3;
+  const MIN_PROMPT_LENGTH = 20;
   const PANEL_ID = "tokn-optimizer-panel";
 
   const SITES = {
@@ -51,6 +55,8 @@
     boundInput: null,
   };
 
+  // ---------- Init ----------
+
   init();
 
   function init() {
@@ -76,6 +82,19 @@
         startWatching();
       }
     });
+
+    // Keyboard shortcut: Ctrl+Shift+T (or Cmd+Shift+T on Mac) to manually trigger
+    document.addEventListener("keydown", (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "T") {
+        e.preventDefault();
+        if (!state.enabled || !state.inputEl) return;
+        const text = getPromptText(state.inputEl).trim();
+        if (text.length >= MIN_PROMPT_LENGTH) {
+          state.dismissed = false;
+          requestOptimization(text, state.inputEl);
+        }
+      }
+    });
   }
 
   function detectSite() {
@@ -83,13 +102,15 @@
   }
 
   function notifySiteDetected(site) {
-    chrome.runtime.sendMessage({
+    safeSendMessage({
       type: "TOKn_SITE_DETECTED",
       siteId: site.id,
       siteName: site.name,
       url: location.href,
     });
   }
+
+  // ---------- Watching ----------
 
   function startWatching() {
     bindToBestInput();
@@ -173,6 +194,8 @@
     return rect.width > 20 && rect.height > 10 && rect.bottom > 0 && rect.top < window.innerHeight;
   }
 
+  // ---------- Text read/write ----------
+
   function getEditableTarget(el) {
     if (!el) return null;
     if (state.site.inputType === "rich-textarea") {
@@ -200,16 +223,41 @@
     if (!target) return;
 
     if (state.site.inputType === "textarea") {
-      target.value = text;
+      // For standard textareas (Perplexity)
+      const nativeSetter = Object.getOwnPropertyDescriptor(
+        HTMLTextAreaElement.prototype, "value"
+      )?.set;
+      if (nativeSetter) {
+        nativeSetter.call(target, text);
+      } else {
+        target.value = text;
+      }
       target.dispatchEvent(new Event("input", { bubbles: true }));
       target.dispatchEvent(new Event("change", { bubbles: true }));
       return;
     }
 
+    // For contenteditable (ChatGPT, Claude) — use execCommand for React compat
     target.focus();
-    target.innerText = text;
-    target.dispatchEvent(new InputEvent("input", { bubbles: true, data: text }));
+
+    // Select all existing text
+    const selection = window.getSelection();
+    const range = document.createRange();
+    range.selectNodeContents(target);
+    selection.removeAllRanges();
+    selection.addRange(range);
+
+    // Insert replacement text — this fires React-compatible input events
+    if (document.execCommand("insertText", false, text)) {
+      // execCommand worked — React will pick up the change
+    } else {
+      // Fallback for browsers that don't support execCommand
+      target.innerText = text;
+      target.dispatchEvent(new InputEvent("input", { bubbles: true, data: text }));
+    }
   }
+
+  // ---------- Input handler ----------
 
   function handleInputChange(el) {
     if (!state.enabled) return;
@@ -241,6 +289,27 @@
     }
   }
 
+  // ---------- API communication ----------
+
+  /**
+   * Send message to background with automatic retry.
+   * Chrome kills idle service workers — if the first attempt fails
+   * with a disconnected port error, we retry after a short delay.
+   */
+  function safeSendMessage(msg, callback, retries = 2) {
+    chrome.runtime.sendMessage(msg, (response) => {
+      if (chrome.runtime.lastError) {
+        if (retries > 0) {
+          setTimeout(() => safeSendMessage(msg, callback, retries - 1), 500);
+          return;
+        }
+        if (callback) callback(undefined);
+        return;
+      }
+      if (callback) callback(response);
+    });
+  }
+
   function requestOptimization(prompt, inputEl) {
     if (prompt === state.lastSentPrompt) return;
 
@@ -249,7 +318,7 @@
 
     showPanelLoading();
 
-    chrome.runtime.sendMessage(
+    safeSendMessage(
       {
         type: "TOKn_OPTIMIZE",
         prompt,
@@ -259,13 +328,13 @@
       (response) => {
         if (requestId !== state.lastRequestId) return;
 
-        if (chrome.runtime.lastError) {
-          showPanelError(chrome.runtime.lastError.message || "Extension error");
+        if (!response) {
+          showPanelError("Extension connection lost — try refreshing the page");
           return;
         }
 
-        if (!response?.ok) {
-          showPanelError(response?.error || "Could not optimize prompt");
+        if (!response.ok) {
+          showPanelError(response.error || "Could not optimize prompt");
           state.lastSentPrompt = "";
           return;
         }
@@ -274,6 +343,8 @@
       }
     );
   }
+
+  // ---------- Panel UI ----------
 
   function buildPanelMarkup() {
     const root = document.createElement("div");
@@ -303,6 +374,9 @@
         </button>
       </div>
       <div class="tokn-panel__status" data-tokn-status hidden></div>
+      <div class="tokn-panel__shortcut">
+        <kbd>${navigator.platform.includes("Mac") ? "⌘" : "Ctrl"}+Shift+T</kbd> to optimize
+      </div>
     `;
     return root.innerHTML.trim();
   }
@@ -432,6 +506,8 @@
 
     positionPanel(inputEl);
   }
+
+  // ---------- Helpers ----------
 
   function formatNumber(n) {
     return new Intl.NumberFormat().format(Math.round(n));

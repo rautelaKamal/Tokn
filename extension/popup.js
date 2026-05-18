@@ -5,6 +5,7 @@ const STORAGE_KEYS = {
   tokensToday: "tokn_tokens_saved_today",
   tokensDate: "tokn_tokens_saved_date",
   lastSite: "tokn_last_site",
+  apiKey: "tokn_api_key",
 };
 
 const els = {
@@ -13,13 +14,29 @@ const els = {
   detectedSite: document.getElementById("detected-site"),
   statusHint: document.getElementById("status-hint"),
   apiUrl: document.getElementById("api-url"),
+  apiKeyInput: document.getElementById("api-key-input"),
+  apiKeySave: document.getElementById("api-key-save"),
+  apiKeyHint: document.getElementById("api-key-hint"),
+  shortcutKey: document.getElementById("shortcut-key"),
 };
 
 init();
 
 async function init() {
+  // Show correct shortcut for platform
+  const isMac = navigator.platform.includes("Mac");
+  els.shortcutKey.textContent = isMac ? "⌘+Shift+T" : "Ctrl+Shift+T";
+
   const apiHost = TOKN_CONFIG.API_BASE_URL.replace(/^https?:\/\//, "");
   els.apiUrl.textContent = apiHost;
+
+  // Load saved API key
+  chrome.storage.local.get([STORAGE_KEYS.apiKey], (data) => {
+    const key = data[STORAGE_KEYS.apiKey] || "";
+    if (key) {
+      els.apiKeyInput.value = key;
+    }
+  });
 
   const state = await sendMessage({ type: "TOKn_GET_STATE" });
   if (state?.ok) {
@@ -29,12 +46,24 @@ async function init() {
     updateHint(state.enabled);
   }
 
+  // Toggle handler
   els.toggle.addEventListener("change", async () => {
     const enabled = els.toggle.checked;
     await sendMessage({ type: "TOKn_SET_ENABLED", enabled });
     updateHint(enabled);
   });
 
+  // API key save handler
+  els.apiKeySave.addEventListener("click", async () => {
+    const apiKey = els.apiKeyInput.value.trim();
+    await sendMessage({ type: "TOKn_SET_API_KEY", apiKey });
+    els.apiKeyHint.textContent = apiKey ? "✓ Key saved" : "✓ Cleared (dev mode)";
+    setTimeout(() => {
+      els.apiKeyHint.textContent = "Optional — required when backend auth is enabled";
+    }, 2000);
+  });
+
+  // Live storage updates
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== "local") return;
     if (changes[STORAGE_KEYS.tokensToday]) {
@@ -51,6 +80,7 @@ async function init() {
     }
   });
 
+  // Detect current tab site
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (tab?.url) {

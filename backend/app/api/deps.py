@@ -21,5 +21,7 @@ def get_cost_calculator() -> CostCalculator:
     )
 
 
+@lru_cache
 def get_optimizer_service() -> PromptOptimizerService:
+    """Cached singleton — avoids creating a new Anthropic client per request."""
     return PromptOptimizerService(get_settings())

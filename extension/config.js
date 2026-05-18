@@ -6,9 +6,15 @@ export const TOKN_CONFIG = {
   API_BASE_URL: "http://localhost:8000",
   OPTIMIZE_PATH: "/api/v1/optimize/",
   DEBOUNCE_MS: 800,
-  MIN_PROMPT_LENGTH: 3,
+  MIN_PROMPT_LENGTH: 20,
 };
 
+/**
+ * Supported AI sites — canonical source of truth.
+ * ⚠️  content.js duplicates this list because content scripts cannot use
+ *     ES module imports. If you update selectors here, mirror the change
+ *     in the SITES object inside content.js.
+ */
 export const SITES = {
   chatgpt: {
     id: "chatgpt",
