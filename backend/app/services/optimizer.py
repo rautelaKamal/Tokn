@@ -1,4 +1,5 @@
-from anthropic import APIError, AsyncAnthropic
+from google import genai
+from google.genai import types
 
 from app.core.config import Settings
 
@@ -24,46 +25,39 @@ class OptimizerError(Exception):
 class PromptOptimizerService:
     def __init__(self, settings: Settings) -> None:
         self._settings = settings
-        self._client: AsyncAnthropic | None = None
-        self._model = settings.anthropic_model
-        self._max_tokens = settings.anthropic_max_tokens
+        self._model_name = settings.gemini_model
+        self._client = None
 
-    def _get_client(self) -> AsyncAnthropic:
-        if not self._settings.anthropic_api_key:
+    def _get_client(self) -> genai.Client:
+        if not self._settings.gemini_api_key:
             raise OptimizerError(
-                "ANTHROPIC_API_KEY is not configured. Set it in your .env file."
+                "GEMINI_API_KEY is not configured. Set it in your .env file. "
+                "Get a free key at https://aistudio.google.com"
             )
         if self._client is None:
-            self._client = AsyncAnthropic(api_key=self._settings.anthropic_api_key)
+            self._client = genai.Client(api_key=self._settings.gemini_api_key)
         return self._client
 
     @property
     def model_name(self) -> str:
-        return self._model
+        return self._model_name
 
     async def optimize(self, raw_prompt: str) -> str:
-        """Call Claude to compress and rephrase the prompt."""
+        """Call Gemini to compress and rephrase the prompt."""
         try:
-            message = await self._get_client().messages.create(
-                model=self._model,
-                max_tokens=self._max_tokens,
-                system=SYSTEM_PROMPT,
-                messages=[
-                    {
-                        "role": "user",
-                        "content": raw_prompt.strip(),
-                    }
-                ],
+            response = await self._get_client().aio.models.generate_content(
+                model=self._model_name,
+                contents=raw_prompt.strip(),
+                config=types.GenerateContentConfig(
+                    system_instruction=SYSTEM_PROMPT,
+                    max_output_tokens=1024,
+                    temperature=0.3,
+                ),
             )
-        except APIError as exc:
-            raise OptimizerError(f"Anthropic API error: {exc}") from exc
+        except Exception as exc:
+            raise OptimizerError(f"Gemini API error: {exc}") from exc
 
-        text_blocks = [
-            block.text
-            for block in message.content
-            if hasattr(block, "text") and block.text
-        ]
-        optimized = "".join(text_blocks).strip()
+        optimized = (response.text or "").strip()
         if not optimized:
             raise OptimizerError("Model returned an empty optimization.")
         return optimized

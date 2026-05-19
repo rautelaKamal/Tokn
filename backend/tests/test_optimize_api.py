@@ -27,7 +27,7 @@ def test_optimize_validation(client: TestClient) -> None:
 def test_optimize_success(client: TestClient) -> None:
     mock_service = AsyncMock()
     mock_service.optimize.return_value = "Write a concise professional email."
-    mock_service.model_name = "claude-test"
+    mock_service.model_name = "gemini-test"
 
     app = client.app
     app.dependency_overrides[get_optimizer_service] = lambda: mock_service

@@ -26,9 +26,9 @@ class Settings(BaseSettings):
         ]
     )
 
-    anthropic_api_key: str = ""
-    anthropic_model: str = "claude-sonnet-4-20250514"
-    anthropic_max_tokens: int = 1024
+    # Gemini (Google AI Studio — free tier: 1,500 req/day)
+    gemini_api_key: str = ""
+    gemini_model: str = "gemini-2.5-flash"
 
     # Simple API-key auth for extension → backend calls
     tokn_api_key: str = ""  # Set in .env; empty = auth disabled (dev only)
@@ -42,9 +42,9 @@ class Settings(BaseSettings):
 
     tiktoken_encoding: str = "cl100k_base"
 
-    # USD per 1M tokens (input / output) for savings estimates
-    input_cost_per_million: float = 3.0
-    output_cost_per_million: float = 15.0
+    # USD per 1M tokens (Gemini 2.5 Flash pricing)
+    input_cost_per_million: float = 0.15
+    output_cost_per_million: float = 0.60
 
     jwt_secret_key: str = "change-me-in-production"
     jwt_algorithm: str = "HS256"
