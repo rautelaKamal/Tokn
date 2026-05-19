@@ -86,20 +86,93 @@ class PromptOptimizerService:
         return self._model_name
 
     async def optimize(self, raw_prompt: str) -> str:
-        """Call Gemini to compress and rephrase the prompt."""
+        """Preprocess → Gemini compress → postprocess."""
+        cleaned = self._preprocess(raw_prompt)
+
         try:
             response = await self._get_client().aio.models.generate_content(
                 model=self._model_name,
-                contents=f"{SYSTEM_PROMPT}\n\n{raw_prompt.strip()}",
+                contents=f"{SYSTEM_PROMPT}\n\n{cleaned}",
                 config=types.GenerateContentConfig(
                     max_output_tokens=512,
                     temperature=0.2,
+                    stop_sequences=["\n\n", "\n---", "Input:", "Note:"],
                 ),
             )
         except Exception as exc:
             raise OptimizerError(f"Gemini API error: {exc}") from exc
 
-        optimized = (response.text or "").strip()
+        optimized = self._postprocess(response.text or "")
         if not optimized:
             raise OptimizerError("Model returned an empty optimization.")
         return optimized
+
+    # ---------- Pre/post processing ----------
+
+    @staticmethod
+    def _preprocess(text: str) -> str:
+        """Strip common filler before sending to the model.
+        This saves input tokens and gives Gemini a cleaner signal."""
+        import re
+
+        s = text.strip()
+
+        # Filler phrases (order matters — longer patterns first)
+        filler = [
+            r"\bI was wondering if you could\b",
+            r"\bI would really appreciate it if you could\b",
+            r"\bI would appreciate it if you could\b",
+            r"\bcould you (please |kindly )?",
+            r"\bcan you (please |kindly )?",
+            r"\bwould you (please |kindly )?",
+            r"\bplease (could you |can you )?",
+            r"\bI think (that )?",
+            r"\bI was wondering if\b",
+            r"\bI was hoping you could\b",
+            r"\bI need you to\b",
+            r"\bI want you to\b",
+            r"\bif you don'?t mind\b",
+            r"\bif that'?s okay\b",
+            r"\bif possible\b",
+        ]
+        for pattern in filler:
+            s = re.sub(pattern, "", s, flags=re.IGNORECASE)
+
+        # Filler words (only when surrounded by word boundaries)
+        filler_words = [
+            r"\breally\b", r"\bvery\b", r"\bjust\b", r"\bkindly\b",
+            r"\bbasically\b", r"\bactually\b", r"\bhonestly\b",
+            r"\bliterally\b",
+        ]
+        for word in filler_words:
+            s = re.sub(word, "", s, flags=re.IGNORECASE)
+
+        # Clean up leftover whitespace
+        s = re.sub(r"\s{2,}", " ", s).strip()
+        # Fix leading lowercase after filler removal
+        if s and s[0].islower():
+            s = s[0].upper() + s[1:]
+
+        return s
+
+    @staticmethod
+    def _postprocess(text: str) -> str:
+        """Clean up model output — remove quotes, markdown, explanations."""
+        s = text.strip()
+
+        # Strip wrapping quotes
+        if len(s) >= 2 and s[0] == s[-1] and s[0] in ('"', "'", "`"):
+            s = s[1:-1].strip()
+
+        # Remove markdown code fences
+        if s.startswith("```"):
+            s = s.split("\n", 1)[-1] if "\n" in s else s[3:]
+        if s.endswith("```"):
+            s = s[:-3]
+
+        # Take only the first line if model rambled (belt + suspenders with stop_sequences)
+        lines = [l.strip() for l in s.split("\n") if l.strip()]
+        if lines:
+            s = lines[0]
+
+        return s.strip()
