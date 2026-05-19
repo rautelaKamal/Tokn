@@ -21,7 +21,11 @@ export const SITES = {
     name: "ChatGPT",
     hostPattern: /chat\.openai\.com$|chatgpt\.com$/,
     matchUrls: ["https://chat.openai.com/*", "https://chatgpt.com/*"],
-    inputSelector: 'div[contenteditable="true"]',
+    inputSelectors: [
+      'div.ProseMirror[contenteditable="true"]',
+      '#prompt-textarea',
+      'div[contenteditable="true"]',
+    ],
     inputType: "contenteditable",
   },
   claude: {
@@ -29,7 +33,12 @@ export const SITES = {
     name: "Claude",
     hostPattern: /claude\.ai$/,
     matchUrls: ["https://claude.ai/*"],
-    inputSelector: 'div[contenteditable="true"]',
+    inputSelectors: [
+      'div[contenteditable="true"].ProseMirror',
+      'div[contenteditable="true"][data-testid]',
+      'div[contenteditable="true"][placeholder]',
+      'div[contenteditable="true"]',
+    ],
     inputType: "contenteditable",
   },
   gemini: {
@@ -37,7 +46,10 @@ export const SITES = {
     name: "Gemini",
     hostPattern: /gemini\.google\.com$/,
     matchUrls: ["https://gemini.google.com/*"],
-    inputSelector: "rich-textarea",
+    inputSelectors: [
+      "rich-textarea",
+      'div[contenteditable="true"]',
+    ],
     inputType: "rich-textarea",
   },
   perplexity: {
@@ -48,7 +60,10 @@ export const SITES = {
       "https://www.perplexity.ai/*",
       "https://perplexity.ai/*",
     ],
-    inputSelector: "textarea",
+    inputSelectors: [
+      'textarea[placeholder]',
+      "textarea",
+    ],
     inputType: "textarea",
   },
 };

@@ -17,28 +17,45 @@
       id: "chatgpt",
       name: "ChatGPT",
       test: () => /chat\.openai\.com$|chatgpt\.com$/.test(location.hostname),
-      inputSelector: 'div[contenteditable="true"]',
+      // ProseMirror-based editor — class names change, but contenteditable is stable
+      inputSelectors: [
+        'div.ProseMirror[contenteditable="true"]',
+        '#prompt-textarea',
+        'div[contenteditable="true"]',
+      ],
       inputType: "contenteditable",
     },
     claude: {
       id: "claude",
       name: "Claude",
       test: () => /claude\.ai$/.test(location.hostname),
-      inputSelector: 'div[contenteditable="true"]',
+      // Claude also uses ProseMirror; data-testid may be present
+      inputSelectors: [
+        'div[contenteditable="true"].ProseMirror',
+        'div[contenteditable="true"][data-testid]',
+        'div[contenteditable="true"][placeholder]',
+        'div[contenteditable="true"]',
+      ],
       inputType: "contenteditable",
     },
     gemini: {
       id: "gemini",
       name: "Gemini",
       test: () => /gemini\.google\.com$/.test(location.hostname),
-      inputSelector: "rich-textarea",
+      inputSelectors: [
+        "rich-textarea",
+        'div[contenteditable="true"]',
+      ],
       inputType: "rich-textarea",
     },
     perplexity: {
       id: "perplexity",
       name: "Perplexity",
       test: () => /perplexity\.ai$/.test(location.hostname),
-      inputSelector: "textarea",
+      inputSelectors: [
+        'textarea[placeholder]',
+        "textarea",
+      ],
       inputType: "textarea",
     },
   };
@@ -166,9 +183,13 @@
   function findBestInput() {
     if (!state.site) return null;
 
-    const nodes = Array.from(document.querySelectorAll(state.site.inputSelector)).filter(
-      isVisible
-    );
+    // Try each selector from most-specific to least-specific
+    const selectors = state.site.inputSelectors || [state.site.inputSelector];
+    let nodes = [];
+    for (const sel of selectors) {
+      nodes = Array.from(document.querySelectorAll(sel)).filter(isVisible);
+      if (nodes.length) break;
+    }
     if (!nodes.length) return null;
 
     const active = document.activeElement;
@@ -249,11 +270,27 @@
 
     // Insert replacement text — this fires React-compatible input events
     if (document.execCommand("insertText", false, text)) {
-      // execCommand worked — React will pick up the change
+      // execCommand worked — React/ProseMirror will pick up the change
     } else {
-      // Fallback for browsers that don't support execCommand
-      target.innerText = text;
-      target.dispatchEvent(new InputEvent("input", { bubbles: true, data: text }));
+      // Fallback: simulate clipboard paste (works with ProseMirror editors)
+      try {
+        const clipData = new DataTransfer();
+        clipData.setData("text/plain", text);
+        const pasteEvent = new ClipboardEvent("paste", {
+          bubbles: true,
+          cancelable: true,
+          clipboardData: clipData,
+        });
+        target.dispatchEvent(pasteEvent);
+      } catch {
+        // Last resort: direct DOM manipulation
+        target.innerText = text;
+        target.dispatchEvent(new InputEvent("input", {
+          bubbles: true,
+          inputType: "insertText",
+          data: text,
+        }));
+      }
     }
   }
 
