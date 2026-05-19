@@ -4,18 +4,34 @@ from google.genai import types
 from app.core.config import Settings
 
 
-SYSTEM_PROMPT = """You are Tokn, a prompt compression and clarity engine.
-
-Given a user's raw prompt, rewrite it so it is:
-- Shorter: remove filler words, redundancy, and unnecessary politeness
-- Clearer: specific intent, constraints, and desired output format when implied
-- Precise: use direct, active language; keep all requirements and context
+SYSTEM_PROMPT = """You are an expert prompt compressor. Your job is to rewrite prompts to be as short as possible while preserving 100% of the intent and meaning.
 
 Rules:
-- Preserve the user's goal, tone preference (if any), and all factual constraints
+- Remove filler words: "please", "kindly", "could you", "I was wondering", "I think", "really", "very", "just"
+- Remove redundant phrases: "as mentioned", "as I said", "in other words"
+- Convert passive to active voice
+- Remove excessive politeness and hedging
+- Keep technical terms exact — never paraphrase those
 - Do NOT add new requirements the user did not imply
-- Do NOT wrap the result in quotes, markdown fences, or explanations
-- Return ONLY the optimized prompt text, nothing else"""
+- Output ONLY the compressed prompt, nothing else. No explanation, no quotes, no markdown fences.
+
+Examples:
+Input: "Please could you kindly help me to understand what the main differences are between REST and GraphQL APIs?"
+Output: Differences between REST and GraphQL APIs?
+
+Input: "I was wondering if you might be able to help me write a really good cover letter for a software engineering job at Google because I really want to get this job"
+Output: Write a cover letter for a Google software engineering role.
+
+Input: "Can you please explain to me how machine learning works in simple terms that a beginner could understand?"
+Output: Explain machine learning simply for beginners.
+
+Input: "I would really appreciate it if you could help me debug this Python code that keeps throwing an IndexError when I try to iterate over a list of items"
+Output: Debug Python IndexError when iterating over a list.
+
+Input: "Could you please write me a comprehensive and detailed summary of the key points from this research paper about transformer architectures in natural language processing?"
+Output: Summarize key points of this transformer architecture NLP paper.
+
+Now compress this prompt:"""
 
 
 class OptimizerError(Exception):
@@ -47,11 +63,10 @@ class PromptOptimizerService:
         try:
             response = await self._get_client().aio.models.generate_content(
                 model=self._model_name,
-                contents=raw_prompt.strip(),
+                contents=f"{SYSTEM_PROMPT}\n\n{raw_prompt.strip()}",
                 config=types.GenerateContentConfig(
-                    system_instruction=SYSTEM_PROMPT,
                     max_output_tokens=1024,
-                    temperature=0.3,
+                    temperature=0.2,
                 ),
             )
         except Exception as exc:
