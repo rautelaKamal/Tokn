@@ -96,7 +96,7 @@ class PromptOptimizerService:
                 config=types.GenerateContentConfig(
                     max_output_tokens=512,
                     temperature=0.2,
-                    stop_sequences=["\n\n", "\n---", "Input:", "Note:"],
+                    stop_sequences=["Input:", "Note:", "Explanation:", "---"],
                 ),
             )
         except Exception as exc:
@@ -170,9 +170,21 @@ class PromptOptimizerService:
         if s.endswith("```"):
             s = s[:-3]
 
-        # Take only the first line if model rambled (belt + suspenders with stop_sequences)
-        lines = [l.strip() for l in s.split("\n") if l.strip()]
-        if lines:
-            s = lines[0]
+        # Join valid lines, stop at rambling markers
+        import re
+        ramble_pattern = re.compile(
+            r"^(Note:|Explanation:|Here|This |I |The original|Output:|---|\d+\.)",
+            re.IGNORECASE,
+        )
+        kept = []
+        for line in s.split("\n"):
+            stripped = line.strip()
+            if not stripped:
+                continue
+            if ramble_pattern.match(stripped) and kept:
+                break  # model started explaining — stop
+            kept.append(stripped)
+
+        s = " ".join(kept) if kept else s
 
         return s.strip()
