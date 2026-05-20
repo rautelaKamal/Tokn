@@ -3,7 +3,7 @@
  * Backend URL is the only remote dependency exposed to the extension.
  */
 export const TOKN_CONFIG = {
-  API_BASE_URL: "http://localhost:8000",
+  API_BASE_URL: "https://tokn-backend-37op.onrender.com",
   OPTIMIZE_PATH: "/api/v1/optimize/",
   DEBOUNCE_MS: 800,
   MIN_PROMPT_LENGTH: 20,
