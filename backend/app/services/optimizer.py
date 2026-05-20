@@ -67,6 +67,12 @@ Output: Migration plan: monolith PHP→microservices (Docker/K8s), near-zero dow
 Input: "Build an end-to-end machine learning pipeline for fraud detection using Python and scikit-learn: preprocessing, feature engineering, handling class imbalance, cross-validation, hyperparameter tuning, explainability, drift detection, monitoring, deployment, retraining strategy. Use realistic assumptions and provide production considerations."
 Output: End-to-end Python/scikit-learn fraud detection pipeline: preprocessing, feature engineering, class imbalance, cross-validation, hyperparameter tuning, explainability, drift detection, monitoring, deployment, retraining. Realistic assumptions, production considerations.
 
+Input: "I don't understand the topic, explain in depth and detail, from 0"
+Output: I don't understand the topic. Explain in depth, from 0.
+
+Input: "I'm a complete beginner and I really need you to please explain how Docker containers work in simple terms"
+Output: I'm a complete beginner. Explain how Docker containers work simply.
+
 Now compress this prompt. Output ONLY the compressed version, nothing else:"""
 
 
