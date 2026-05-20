@@ -11,6 +11,7 @@
     "https://gemini.google.com/*",
     "https://www.perplexity.ai/*",
     "https://perplexity.ai/*",
+    "https://tokn-backend-37op.onrender.com/*",
     "http://localhost:8000/*",
     "http://127.0.0.1:8000/*"
   ],
