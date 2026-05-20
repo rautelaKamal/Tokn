@@ -26,9 +26,9 @@ class Settings(BaseSettings):
         ]
     )
 
-    # Gemini (Google AI Studio — free tier: 250 req/day, 10 req/min)
+    # Gemini (Google AI Studio — free tier: 1,000 req/day with flash-lite)
     gemini_api_key: str = ""
-    gemini_model: str = "gemini-2.5-flash"
+    gemini_model: str = "gemini-2.5-flash-lite"
 
     # Simple API-key auth for extension → backend calls
     tokn_api_key: str = ""  # Set in .env; empty = auth disabled (dev only)
