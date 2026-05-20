@@ -96,7 +96,7 @@ class PromptOptimizerService:
                 config=types.GenerateContentConfig(
                     max_output_tokens=512,
                     temperature=0.2,
-                    stop_sequences=["Input:", "Note:", "Explanation:", "---"],
+                    thinking_config=types.ThinkingConfig(thinking_budget=0),
                 ),
             )
         except Exception as exc:
