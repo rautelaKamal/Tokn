@@ -19,7 +19,15 @@ COMPRESSION RULES:
 - Convert verbose descriptions into compact semantic phrases
   Example: "a Python script that reads CSV files and removes duplicate rows" → "Python script removing duplicate CSV rows"
 - Remove emotional padding unless it is the actual intent
-  Example: "I really really urgently need help" → "Urgent:"
+
+STRUCTURAL COMPRESSION (for already-dense prompts):
+- Drop articles: "a", "an", "the" when meaning is clear without them
+- Merge list prefixes: "Include: X. Provide: Y." → "Cover X. Output Y."
+- Use symbols: "greater than" → ">", "less than" → "<", "equal to" → "=="
+- Condense phrasing: "estimated monthly AWS cost under 10k USD" → "AWS cost <$10k/mo"
+- Use slashes for alternatives: "monthly and yearly" → "monthly/yearly"
+- Merge adjacent lists into one when they share context
+- Remove redundant verbs: "make sure to include" → "include"
 
 PRESERVATION RULES (never break these):
 - Preserve core intent exactly — do NOT change what the user is asking for
@@ -44,19 +52,19 @@ Input: "Please could you kindly help me to understand what the main differences 
 Output: Differences between REST and GraphQL APIs?
 
 Input: "I was wondering if you might be able to help me write a really good cover letter for a software engineering job at Google because I really want to get this job"
-Output: Write a cover letter for a Google software engineering role.
-
-Input: "Write a TypeScript React component using Tailwind CSS that displays a responsive pricing table with monthly and yearly billing toggle"
-Output: Create responsive TypeScript React Tailwind pricing table with monthly/yearly billing toggle.
+Output: Write cover letter for Google SWE role.
 
 Input: "Can you please write me a Python function that takes a list of dictionaries and returns only the ones where the value of the 'status' key is equal to 'active', and make sure to include type hints"
 Output: Python function with type hints: filter list of dicts where status == 'active'.
 
-Input: "I need you to explain quantum entanglement to me in really simple terms that a 10 year old could understand, with a real world analogy"
-Output: Explain quantum entanglement simply for a 10-year-old with a real-world analogy.
+Input: "Design a multi-tenant SaaS project management platform for 100k concurrent users using Node.js, PostgreSQL, Redis, Kafka, and Kubernetes. Include: authentication flow (JWT + OAuth), RBAC permissions, rate limiting, caching strategy, DB sharding, CI/CD pipeline, observability stack, disaster recovery, API versioning, cost optimization. Return: 1. high-level architecture 2. sequence diagram descriptions 3. markdown tables for services 4. estimated monthly AWS cost under 10k USD 5. security risks + mitigations."
+Output: Design multi-tenant SaaS PM platform (100k concurrent, Node/PostgreSQL/Redis/Kafka/K8s). Cover: JWT+OAuth auth, RBAC, rate limiting, caching, DB sharding, CI/CD, observability, DR, API versioning, cost optimization. Output: architecture, sequence diagrams, service tables (markdown), AWS cost <$10k/mo, security risks+mitigations.
 
-Input: "Can you help me debug this code? It keeps throwing a TypeError on line 23 when I pass a string instead of an integer and I'm not sure why"
-Output: Debug TypeError on line 23: string passed instead of integer. Why?
+Input: "Create a step-by-step migration plan from a monolithic PHP application to microservices using Docker and Kubernetes with near-zero downtime. Include: strangler pattern, database migration strategy, rollback plans, observability, blue-green deployment, traffic splitting, secret management, cost analysis, timeline with weekly milestones. Return everything in markdown tables."
+Output: Migration plan: monolith PHP→microservices (Docker/K8s), near-zero downtime. Cover: strangler pattern, DB migration, rollback, observability, blue-green deploy, traffic splitting, secrets, cost, weekly timeline. Format: markdown tables.
+
+Input: "Build an end-to-end machine learning pipeline for fraud detection using Python and scikit-learn: preprocessing, feature engineering, handling class imbalance, cross-validation, hyperparameter tuning, explainability, drift detection, monitoring, deployment, retraining strategy. Use realistic assumptions and provide production considerations."
+Output: End-to-end Python/scikit-learn fraud detection pipeline: preprocessing, feature engineering, class imbalance, cross-validation, hyperparameter tuning, explainability, drift detection, monitoring, deployment, retraining. Realistic assumptions, production considerations.
 
 Now compress this prompt. Output ONLY the compressed version, nothing else:"""
 
@@ -111,13 +119,13 @@ class PromptOptimizerService:
 
     @staticmethod
     def _preprocess(text: str) -> str:
-        """Strip common filler before sending to the model.
+        """Strip filler, apply abbreviations, and compact structure.
         This saves input tokens and gives Gemini a cleaner signal."""
         import re
 
         s = text.strip()
 
-        # Filler phrases (order matters — longer patterns first)
+        # ---- Layer 1: Filler phrase removal ----
         filler = [
             r"\bI was wondering if you could\b",
             r"\bI would really appreciate it if you could\b",
@@ -138,7 +146,6 @@ class PromptOptimizerService:
         for pattern in filler:
             s = re.sub(pattern, "", s, flags=re.IGNORECASE)
 
-        # Filler words (only when surrounded by word boundaries)
         filler_words = [
             r"\breally\b", r"\bvery\b", r"\bjust\b", r"\bkindly\b",
             r"\bbasically\b", r"\bactually\b", r"\bhonestly\b",
@@ -147,9 +154,26 @@ class PromptOptimizerService:
         for word in filler_words:
             s = re.sub(word, "", s, flags=re.IGNORECASE)
 
-        # Clean up leftover whitespace
+        # ---- Layer 2: Phrase compaction (verified token-saving) ----
+        compactions = [
+            (r"\bmake sure to\b", "ensure"),
+            (r"\bin order to\b", "to"),
+            (r"\bas well as\b", "and"),
+            (r"\bin addition to\b", "plus"),
+            (r"\ba comprehensive and detailed\b", "detailed"),
+            (r"\band also\b", "and"),
+            (r"\bbut also\b", "and"),
+            # Comparison shortcuts (save tokens)
+            (r"\bgreater than\b", ">"),
+            (r"\bless than\b", "<"),
+            (r"\bequal to\b", "=="),
+            (r"\bnot equal to\b", "!="),
+        ]
+        for pattern, replacement in compactions:
+            s = re.sub(pattern, replacement, s, flags=re.IGNORECASE)
+
+        # Clean up whitespace
         s = re.sub(r"\s{2,}", " ", s).strip()
-        # Fix leading lowercase after filler removal
         if s and s[0].islower():
             s = s[0].upper() + s[1:]
 
