@@ -35,6 +35,7 @@ PRESERVATION RULES (never break these):
 - Preserve technical terms, framework names, library names exactly
 - Preserve requested output formats (JSON, markdown, tables, code blocks)
 - Preserve important tone when it affects the output (e.g. "explain simply", "be formal")
+- Preserve self-described skill level — "I don't understand", "I'm a beginner", "I'm new to this", "I'm confused", "explain like I'm 5" are NOT filler. They change how the AI responds.
 - Do NOT add new requirements the user did not state
 - Do NOT summarize vaguely — keep actionable specificity
 - Do NOT drop constraints to make the prompt shorter
