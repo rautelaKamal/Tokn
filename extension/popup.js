@@ -1,4 +1,4 @@
-import { TOKN_CONFIG } from "./config.js";
+import { TOKN_CONFIG, COMPRESSION_LEVELS, DEFAULT_LEVEL } from "./config.js";
 
 const STORAGE_KEYS = {
   enabled: "tokn_enabled",
@@ -6,6 +6,7 @@ const STORAGE_KEYS = {
   tokensDate: "tokn_tokens_saved_date",
   lastSite: "tokn_last_site",
   apiKey: "tokn_api_key",
+  level: "tokn_compression_level",
 };
 
 const els = {
@@ -18,6 +19,8 @@ const els = {
   apiKeySave: document.getElementById("api-key-save"),
   apiKeyHint: document.getElementById("api-key-hint"),
   shortcutKey: document.getElementById("shortcut-key"),
+  levelSelector: document.getElementById("level-selector"),
+  levelHint: document.getElementById("level-hint"),
 };
 
 init();
@@ -44,6 +47,7 @@ async function init() {
     els.tokensSaved.textContent = formatNumber(state.tokensSavedToday || 0);
     updateSiteLabel(state.lastSite);
     updateHint(state.enabled);
+    setActiveLevel(state.level || DEFAULT_LEVEL);
   }
 
   // Toggle handler
@@ -51,6 +55,15 @@ async function init() {
     const enabled = els.toggle.checked;
     await sendMessage({ type: "TOKn_SET_ENABLED", enabled });
     updateHint(enabled);
+  });
+
+  // Level selector handler
+  els.levelSelector.addEventListener("click", async (e) => {
+    const btn = e.target.closest("[data-level]");
+    if (!btn) return;
+    const level = btn.dataset.level;
+    await sendMessage({ type: "TOKn_SET_LEVEL", level });
+    setActiveLevel(level);
   });
 
   // API key save handler
@@ -78,6 +91,9 @@ async function init() {
       els.toggle.checked = changes[STORAGE_KEYS.enabled].newValue !== false;
       updateHint(els.toggle.checked);
     }
+    if (changes[STORAGE_KEYS.level]) {
+      setActiveLevel(changes[STORAGE_KEYS.level].newValue);
+    }
   });
 
   // Detect current tab site
@@ -93,6 +109,22 @@ async function init() {
     /* popup may run without tab permission in some contexts */
   }
 }
+
+// ---------- Level selector ----------
+
+function setActiveLevel(levelId) {
+  const level = COMPRESSION_LEVELS[levelId] || COMPRESSION_LEVELS[DEFAULT_LEVEL];
+
+  // Update button states
+  els.levelSelector.querySelectorAll(".level-btn").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.level === levelId);
+  });
+
+  // Update hint
+  els.levelHint.textContent = level.hint;
+}
+
+// ---------- Helpers ----------
 
 function siteFromUrl(url) {
   try {

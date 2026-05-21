@@ -60,11 +60,19 @@
     },
   };
 
+  const LEVEL_EMOJIS = { safe: "🟢", balanced: "🟡", aggressive: "🔴" };
+  const LEVEL_LABELS = {
+    safe: "Safe mode — no API call",
+    balanced: "Balanced — JS + API",
+    aggressive: "Aggressive — full semantic",
+  };
+
   const state = {
     site: null,
     inputEl: null,
     panel: null,
     enabled: true,
+    level: "balanced",
     debounceTimer: null,
     lastSentPrompt: "",
     lastRequestId: 0,
@@ -83,14 +91,19 @@
     state.site = site;
     notifySiteDetected(site);
 
-    chrome.storage.local.get(["tokn_enabled"], (data) => {
+    chrome.storage.local.get(["tokn_enabled", "tokn_compression_level"], (data) => {
       state.enabled = data.tokn_enabled !== false;
+      state.level = data.tokn_compression_level || "balanced";
       if (!state.enabled) return;
       startWatching();
     });
 
     chrome.storage.onChanged.addListener((changes, area) => {
-      if (area !== "local" || !changes.tokn_enabled) return;
+      if (area !== "local") return;
+      if (changes.tokn_compression_level) {
+        state.level = changes.tokn_compression_level.newValue || "balanced";
+      }
+      if (!changes.tokn_enabled) return;
       state.enabled = changes.tokn_enabled.newValue !== false;
       if (!state.enabled) {
         hidePanel();
@@ -395,7 +408,7 @@
         <button type="button" class="tokn-panel__close" data-tokn-dismiss aria-label="Dismiss">&times;</button>
       </div>
       <div class="tokn-panel__body">
-        <div class="tokn-panel__label">Optimized prompt</div>
+        <div class="tokn-panel__label"><span data-tokn-mode-label>Optimized prompt</span></div>
         <p class="tokn-panel__text" data-tokn-text></p>
       </div>
       <div class="tokn-panel__meta">
@@ -520,8 +533,12 @@
     const costSaved = data.cost_saved_usd ?? 0;
     const optimized = data.optimized_prompt || "";
 
+    const emoji = LEVEL_EMOJIS[data.level || state.level] || "🟡";
     panel.querySelector("[data-tokn-badge]").textContent =
-      tokensSaved > 0 ? `-${formatNumber(tokensSaved)} tokens` : "Optimized";
+      tokensSaved > 0 ? `${emoji} -${formatNumber(tokensSaved)} tokens` : `${emoji} Optimized`;
+
+    const modeLabel = panel.querySelector("[data-tokn-mode-label]");
+    if (modeLabel) modeLabel.textContent = LEVEL_LABELS[data.level || state.level] || "Optimized prompt";
 
     panel.querySelector("[data-tokn-text]").textContent = optimized;
     panel.querySelector("[data-tokn-tokens]").textContent = formatNumber(tokensSaved);

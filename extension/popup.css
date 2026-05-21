@@ -141,6 +141,58 @@ body {
   transform: translateX(20px);
 }
 
+/* Compression level selector */
+.level-selector {
+  display: flex;
+  gap: 4px;
+  margin-top: 8px;
+  background: #12141a;
+  border-radius: 8px;
+  padding: 3px;
+}
+
+.level-btn {
+  flex: 1;
+  padding: 6px 4px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #9aa0a6;
+  font-size: 11px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.level-btn:hover {
+  color: #e8eaed;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.level-btn.active {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.level-btn[data-level="safe"].active {
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+}
+
+.level-btn[data-level="balanced"].active {
+  background: rgba(234, 179, 8, 0.15);
+  color: #facc15;
+}
+
+.level-btn[data-level="aggressive"].active {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+}
+
 /* API key input */
 .popup-api-key-row {
   margin-top: 8px;

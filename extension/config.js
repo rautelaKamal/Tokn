@@ -10,6 +10,39 @@ export const TOKN_CONFIG = {
 };
 
 /**
+ * Compression levels — maps to client-side and API behavior.
+ *
+ * Safe:       JS-only filler stripping, instant, offline, zero API cost
+ * Balanced:   JS first → API on cleaned text (default)
+ * Aggressive: JS first → API with aggressive flag (lower temp, max compression)
+ */
+export const COMPRESSION_LEVELS = {
+  safe: {
+    id: "safe",
+    label: "🟢 Safe",
+    emoji: "🟢",
+    usesApi: false,
+    hint: "Instant, offline · ~15-30% compression",
+  },
+  balanced: {
+    id: "balanced",
+    label: "🟡 Balanced",
+    emoji: "🟡",
+    usesApi: true,
+    hint: "JS + API · ~40-55% compression",
+  },
+  aggressive: {
+    id: "aggressive",
+    label: "🔴 Aggressive",
+    emoji: "🔴",
+    usesApi: true,
+    hint: "Full semantic · ~55-70% compression",
+  },
+};
+
+export const DEFAULT_LEVEL = "balanced";
+
+/**
  * Supported AI sites — canonical source of truth.
  * ⚠️  content.js duplicates this list because content scripts cannot use
  *     ES module imports. If you update selectors here, mirror the change

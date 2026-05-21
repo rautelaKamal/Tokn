@@ -12,6 +12,10 @@ class OptimizeRequest(BaseModel):
         default=None,
         description="Optional override for cost estimation model label",
     )
+    level: str | None = Field(
+        default=None,
+        description="Compression level: 'balanced' or 'aggressive'. Adjusts model behavior.",
+    )
 
 
 class TokenStats(BaseModel):

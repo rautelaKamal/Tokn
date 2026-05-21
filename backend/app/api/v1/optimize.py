@@ -86,7 +86,7 @@ async def optimize_prompt(
         optimized = cached
     else:
         try:
-            optimized = await optimizer.optimize(original)
+            optimized = await optimizer.optimize(original, level=payload.level or "balanced")
         except OptimizerError as exc:
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,

@@ -1,8 +1,10 @@
 /**
  * Tokn service worker — proxies optimize requests to FastAPI.
+ * Routes compression by level: Safe (JS only), Balanced/Aggressive (JS + API).
  * No API keys; all AI calls happen on the backend.
  */
-import { TOKN_CONFIG } from "./config.js";
+import { TOKN_CONFIG, COMPRESSION_LEVELS, DEFAULT_LEVEL } from "./config.js";
+import { clientCompress, estimateTokens } from "./compressor.js";
 
 const STORAGE_KEYS = {
   enabled: "tokn_enabled",
@@ -10,13 +12,14 @@ const STORAGE_KEYS = {
   tokensDate: "tokn_tokens_saved_date",
   lastSite: "tokn_last_site",
   apiKey: "tokn_api_key",
+  level: "tokn_compression_level",
 };
 
 // ---------- Install ----------
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.storage.local.get(
-    [STORAGE_KEYS.enabled, STORAGE_KEYS.tokensToday, STORAGE_KEYS.tokensDate],
+    [STORAGE_KEYS.enabled, STORAGE_KEYS.tokensToday, STORAGE_KEYS.tokensDate, STORAGE_KEYS.level],
     (data) => {
       const updates = {};
       if (data[STORAGE_KEYS.enabled] === undefined) {
@@ -27,6 +30,9 @@ chrome.runtime.onInstalled.addListener(() => {
       }
       if (!data[STORAGE_KEYS.tokensDate]) {
         updates[STORAGE_KEYS.tokensDate] = todayKey();
+      }
+      if (!data[STORAGE_KEYS.level]) {
+        updates[STORAGE_KEYS.level] = DEFAULT_LEVEL;
       }
       if (Object.keys(updates).length > 0) {
         chrome.storage.local.set(updates);
@@ -62,6 +68,14 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return true;
   }
 
+  if (message?.type === "TOKn_SET_LEVEL") {
+    const level = COMPRESSION_LEVELS[message.level] ? message.level : DEFAULT_LEVEL;
+    chrome.storage.local.set({ [STORAGE_KEYS.level]: level }, () => {
+      sendResponse({ ok: true, level });
+    });
+    return true;
+  }
+
   if (message?.type === "TOKn_SET_API_KEY") {
     chrome.storage.local.set({ [STORAGE_KEYS.apiKey]: message.apiKey || "" }, () => {
       sendResponse({ ok: true });
@@ -93,6 +107,7 @@ async function handleOptimize({ prompt, siteId, siteName }) {
   const data = await storageGet([
     STORAGE_KEYS.enabled,
     STORAGE_KEYS.apiKey,
+    STORAGE_KEYS.level,
   ]);
 
   if (data[STORAGE_KEYS.enabled] === false) {
@@ -104,6 +119,9 @@ async function handleOptimize({ prompt, siteId, siteName }) {
     return { ok: false, error: "Prompt is empty" };
   }
 
+  const level = data[STORAGE_KEYS.level] || DEFAULT_LEVEL;
+  const levelConfig = COMPRESSION_LEVELS[level] || COMPRESSION_LEVELS[DEFAULT_LEVEL];
+
   if (siteId) {
     await storageSet({
       [STORAGE_KEYS.lastSite]: {
@@ -114,7 +132,37 @@ async function handleOptimize({ prompt, siteId, siteName }) {
     });
   }
 
-  // Build request headers — include API key if configured
+  // ---- Step 1: Always run client-side compression first ----
+  const jsResult = clientCompress(trimmed);
+
+  // ---- Step 2: If Safe mode, return JS result directly ----
+  if (!levelConfig.usesApi) {
+    const tokensSaved = jsResult.tokensBefore - jsResult.tokensAfter;
+    if (tokensSaved > 0) {
+      const newTotal = await addTokensSavedToday(tokensSaved);
+      updateBadge(newTotal);
+    }
+    return {
+      ok: true,
+      data: {
+        original_prompt: trimmed,
+        optimized_prompt: jsResult.compressed,
+        tokens_before: { tokens: jsResult.tokensBefore, estimated_cost_usd: 0 },
+        tokens_after: { tokens: jsResult.tokensAfter, estimated_cost_usd: 0 },
+        tokens_saved: tokensSaved,
+        cost_saved_usd: 0,
+        compression_ratio: jsResult.tokensBefore > 0
+          ? (jsResult.tokensBefore - jsResult.tokensAfter) / jsResult.tokensBefore
+          : 0,
+        model_used: "client-side (no API)",
+        encoding_used: "estimate",
+        level,
+        changes: jsResult.changes,
+      },
+    };
+  }
+
+  // ---- Step 3: Balanced/Aggressive — send JS-cleaned text to API ----
   const headers = { "Content-Type": "application/json" };
   const apiKey = data[STORAGE_KEYS.apiKey];
   if (apiKey) {
@@ -125,7 +173,10 @@ async function handleOptimize({ prompt, siteId, siteName }) {
   const response = await fetch(url, {
     method: "POST",
     headers,
-    body: JSON.stringify({ prompt: trimmed }),
+    body: JSON.stringify({
+      prompt: jsResult.compressed, // always send pre-cleaned text
+      level,                        // backend adjusts behavior
+    }),
   });
 
   if (!response.ok) {
@@ -143,8 +194,15 @@ async function handleOptimize({ prompt, siteId, siteName }) {
   }
 
   const result = await response.json();
-  const tokensSaved = Number(result.tokens_saved) || 0;
 
+  // Recalculate savings from original (pre-JS) prompt
+  result.tokens_saved = jsResult.tokensBefore - (result.tokens_after?.tokens || 0);
+  result.tokens_before = { tokens: jsResult.tokensBefore, estimated_cost_usd: 0 };
+  result.original_prompt = trimmed;
+  result.level = level;
+  result.changes = jsResult.changes;
+
+  const tokensSaved = Number(result.tokens_saved) || 0;
   if (tokensSaved > 0) {
     const newTotal = await addTokensSavedToday(tokensSaved);
     updateBadge(newTotal);
@@ -161,6 +219,7 @@ async function getExtensionState() {
     STORAGE_KEYS.tokensToday,
     STORAGE_KEYS.tokensDate,
     STORAGE_KEYS.lastSite,
+    STORAGE_KEYS.level,
   ]);
 
   const { tokensToday } = await ensureTodayBucket(
@@ -175,6 +234,7 @@ async function getExtensionState() {
     enabled: data[STORAGE_KEYS.enabled] !== false,
     tokensSavedToday: tokensToday,
     lastSite: data[STORAGE_KEYS.lastSite] || null,
+    level: data[STORAGE_KEYS.level] || DEFAULT_LEVEL,
   };
 }
 

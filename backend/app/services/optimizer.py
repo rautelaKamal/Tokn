@@ -114,9 +114,13 @@ class PromptOptimizerService:
     def model_name(self) -> str:
         return self._model_name
 
-    async def optimize(self, raw_prompt: str) -> str:
-        """Preprocess → Gemini compress → postprocess."""
+    async def optimize(self, raw_prompt: str, level: str = "balanced") -> str:
+        """Preprocess → Gemini compress → postprocess.
+        Level 'aggressive' uses lower temperature for max compression."""
         cleaned = self._preprocess(raw_prompt)
+
+        # Aggressive = lower temperature → more deterministic, max compression
+        temperature = 0.1 if level == "aggressive" else 0.2
 
         try:
             response = await self._get_client().aio.models.generate_content(
@@ -124,7 +128,7 @@ class PromptOptimizerService:
                 contents=f"{SYSTEM_PROMPT}\n\n{cleaned}",
                 config=types.GenerateContentConfig(
                     max_output_tokens=512,
-                    temperature=0.2,
+                    temperature=temperature,
                     thinking_config=types.ThinkingConfig(thinking_budget=0),
                 ),
             )
