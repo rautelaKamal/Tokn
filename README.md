@@ -3,8 +3,9 @@
 > **Grammarly for AI prompts.** Compress, clarify, and quantify token savings in real time — right inside ChatGPT, Claude, Gemini, and Perplexity.
 
 ![Chrome Extension](https://img.shields.io/badge/Manifest-V3-blue)
-![Python](https://img.shields.io/badge/Python-3.11+-green)
+![Python](https://img.shields.io/badge/Python-3.10+-green)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-teal)
+![Gemini](https://img.shields.io/badge/Gemini-2.0--flash-orange)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 
 ---
@@ -12,16 +13,39 @@
 ## How It Works
 
 ```
-User types prompt → Extension detects input (800ms debounce) → 
-  → Service Worker → FastAPI backend → Claude optimizes → 
+User types prompt → Extension detects input (800ms debounce)
+  → Read selected compression level (Safe, Balanced, Aggressive)
+  
+  IF Safe (JS only, offline):
+    → Runs compressor.js (lossless filler stripping) 
+    → Instantly updates UI & saves tokens locally (no API call)
+
+  IF Balanced / Aggressive (JS + API):
+    → Runs compressor.js (lossless pre-cleaning)
+    → Sends cleaned prompt + level to FastAPI backend
+    → FastAPI uses Gemini 2.0 Flash (with temperature tuned for level)
+    → Returns semantic/structural optimization
+    
   → Floating panel shows optimized prompt + token/cost savings
+  → One-click "Use this prompt" swaps input text
 ```
 
-1. **Content script** auto-detects the AI platform's text input
-2. **Service worker** proxies the prompt to the FastAPI backend (no API keys in the extension)
-3. **Backend** uses Anthropic's Claude to compress/clarify the prompt
-4. **Floating panel** appears beside the input with the optimized prompt, tokens saved, and cost saved
-5. **One-click replace** swaps the user's prompt with the optimized version
+1. **Content script** auto-detects the AI platform's text input.
+2. **Compressor** executes client-side lossless filler removal, saving tokens and network bandwidth before backend delivery.
+3. **Service worker** manages state, coordinates level routing, and handles backend API proxying.
+4. **Backend** uses Google Gemini 2.0 Flash to semantically structure, condense, and rewrite the prompt.
+5. **Floating panel** displays the optimized prompt, tokens saved, and cost saved.
+6. **Popup UI** allows switching compression levels, configuring API keys, and tracking daily savings.
+
+---
+
+## 3-Tier Compression Levels
+
+| Level | Engine | Expected Savings | Description & Techniques |
+| :--- | :--- | :--- | :--- |
+| **🟢 Safe** | JS Only (Offline) | ~15% - 30% | Lossless filler stripping, phrase compaction, comparison shortcuts. Zero API cost. |
+| **🟡 Balanced** | JS + Gemini API | ~40% - 55% | Pre-cleaned via JS, then optimized by Gemini (temp=0.2). Smart semantic simplification. |
+| **🔴 Aggressive** | JS + Gemini API | ~55% - 70% | Pre-cleaned via JS, then compressed by Gemini (temp=0.1). High-density rephrasing, colon-stacking. |
 
 ---
 
@@ -31,23 +55,25 @@ User types prompt → Extension detects input (800ms debounce) →
 Tokn/
 ├── backend/              # FastAPI API server
 │   ├── app/
-│   │   ├── api/          # Route handlers
-│   │   ├── core/         # Config, dependencies
-│   │   ├── schemas/      # Pydantic models
+│   │   ├── api/          # Route handlers (/health, /optimize)
+│   │   ├── core/         # Config, dependencies (Gemini SDK settings)
+│   │   ├── schemas/      # Pydantic models (OptimizeRequest, OptimizeResponse)
 │   │   ├── services/     # Tokenizer, optimizer, cost calculator
 │   │   └── main.py       # App entry point
 │   ├── tests/            # Pytest suite (6/6 passing)
+│   ├── Dockerfile        # Container setup for Render / cloud deployment
 │   ├── requirements.txt
 │   └── .env.example
 ├── extension/            # Chrome Extension (MV3)
 │   ├── manifest.json     # Permissions, host matching, icons
-│   ├── background.js     # Service worker — API proxy
-│   ├── content.js        # Input detection, debounce, floating panel
+│   ├── background.js     # Service worker — handles routing, state, API requests
+│   ├── compressor.js     # Shared client-side lossless compression engine
+│   ├── content.js        # Input detection, debounce, floating panel controller
 │   ├── content.css       # Panel styling (dark card, green badges)
-│   ├── popup.html/js/css # Extension popup UI
-│   ├── config.js         # Centralized config (API URL, selectors)
+│   ├── popup.html/js/css # Extension popup UI with level selector (segmented control)
+│   ├── config.js         # Centralized config (production Render URL, selectors)
 │   └── icons/            # 16/48/128px extension icons
-└── frontend/             # React web app (planned)
+└── frontend/             # Marketing & Landing Page (deployed)
 ```
 
 ---
@@ -61,28 +87,31 @@ cd backend
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
-# Configure your Anthropic API key
+# Configure your Gemini API key
 cp .env.example .env
-# Edit .env → set ANTHROPIC_API_KEY=sk-ant-...
-
-uvicorn app.main:app --reload --port 8000
+# Edit .env → set GEMINI_API_KEY=AIzaSy... and GEMINI_MODEL=gemini-2.0-flash
 ```
 
+Start the local server:
+```bash
+uvicorn app.main:app --reload --port 8000
+```
 Verify: `http://localhost:8000/docs` — Swagger UI should load.
 
 ### 2. Chrome Extension
 
 1. Open `chrome://extensions/`
-2. Enable **Developer mode** (top-right toggle)
-3. Click **Load unpacked** → select the `extension/` folder
-4. Navigate to any supported AI site and start typing
+2. Enable **Developer mode** (top-right toggle).
+3. Click **Load unpacked** → select the `extension/` folder.
+4. Open the extension popup in your browser toolbar to verify connection status or change compression levels.
+5. Navigate to any supported AI site (e.g., ChatGPT) and start typing to see the optimizer panel in action.
 
 ### 3. Test the API (no browser needed)
 
 ```bash
 curl -s -X POST http://localhost:8000/api/v1/optimize/ \
   -H "Content-Type: application/json" \
-  -d '{"prompt":"Please could you kindly help me write a good email"}' | python3 -m json.tool
+  -d '{"prompt":"Please could you kindly help me write a good email", "level":"balanced"}' | python3 -m json.tool
 ```
 
 ---
@@ -91,10 +120,10 @@ curl -s -X POST http://localhost:8000/api/v1/optimize/ \
 
 | Platform    | URL                          | Input Selector                      |
 |-------------|------------------------------|-------------------------------------|
-| ChatGPT     | `chat.openai.com`, `chatgpt.com` | `div[contenteditable="true"]`   |
+| ChatGPT     | `chat.openai.com`, `chatgpt.com` | `div[contenteditable="true"]`, `#prompt-textarea` |
 | Claude      | `claude.ai`                  | `div[contenteditable="true"]`       |
-| Gemini      | `gemini.google.com`          | `rich-textarea`                     |
-| Perplexity  | `perplexity.ai`              | `textarea`                          |
+| Gemini      | `gemini.google.com`          | `rich-textarea`, `div[contenteditable="true"]` |
+| Perplexity  | `perplexity.ai`              | `textarea[placeholder]`, `textarea`  |
 
 ---
 
@@ -103,26 +132,36 @@ curl -s -X POST http://localhost:8000/api/v1/optimize/ \
 | Method | Endpoint              | Description                      |
 |--------|-----------------------|----------------------------------|
 | GET    | `/api/v1/health`      | Health check                     |
-| POST   | `/api/v1/optimize/`   | Optimize a prompt                |
+| POST   | `/api/v1/optimize/`   | Optimize a prompt using specified level |
 
 ### POST `/api/v1/optimize/`
 
 **Request:**
 ```json
 {
-  "prompt": "Please could you kindly help me write a good email to my boss"
+  "prompt": "I was wondering if you could write a REST API in Python using FastAPI that handles user authentication and returns JSON responses",
+  "level": "balanced"
 }
 ```
 
 **Response:**
 ```json
 {
-  "original_prompt": "Please could you kindly help me write a good email to my boss",
-  "optimized_prompt": "Write a professional email to my boss",
-  "original_tokens": 15,
-  "optimized_tokens": 8,
-  "tokens_saved": 7,
-  "cost_saved_usd": 0.000021
+  "original_prompt": "I was wondering if you could write a REST API in Python using FastAPI that handles user authentication and returns JSON responses",
+  "optimized_prompt": "FastAPI REST API: user auth, JSON responses.",
+  "tokens_before": {
+    "tokens": 25,
+    "estimated_cost_usd": 0.00000375
+  },
+  "tokens_after": {
+    "tokens": 9,
+    "estimated_cost_usd": 0.00000135
+  },
+  "tokens_saved": 16,
+  "cost_saved_usd": 0.000002,
+  "compression_ratio": 0.64,
+  "model_used": "gemini-2.0-flash",
+  "encoding_used": "cl100k_base"
 }
 ```
 
@@ -139,56 +178,31 @@ content.js  ──TOKn_OPTIMIZE──▸  background.js  ──fetch──▸  F
 
 ### Key Design Decisions
 
-- **No API keys in extension code** — all AI calls go through the FastAPI backend
-- **800ms debounce** — prevents API spam while user is actively typing
-- **Daily token counter** — stored in `chrome.storage.local`, auto-resets each day
-- **MutationObserver** — watches for dynamic DOM changes (SPAs re-render inputs)
-- **Request ID tracking** — prevents stale responses from overwriting newer ones
+- **No API keys in extension code** — all Gemini API interactions are handled on the server.
+- **800ms debounce** — prevents excessive API requests during active typing.
+- **Hybrid Optimization Pipeline** — client-side JS pre-cleans prompts for API calls, maximizing token efficiency and reducing prompt payloads.
+- **Offline Safe Mode** — allows zero-latency, local-only compression without consuming API key quotas.
+- **Daily savings tracker** — saved in `chrome.storage.local` with automatic daily reset.
+- **MutationObserver** — handles dynamic UI updates across single-page applications.
 
 ### Storage Keys
 
 | Key                       | Type    | Description                    |
 |---------------------------|---------|--------------------------------|
-| `tokn_enabled`            | boolean | Extension on/off toggle        |
-| `tokn_tokens_saved_today` | number  | Running total for current day  |
-| `tokn_tokens_saved_date`  | string  | ISO date for daily reset check |
-| `tokn_last_site`          | object  | Last detected AI platform info |
+| `tokn_enabled`            | boolean | Global extension state (on/off) |
+| `tokn_tokens_saved_today` | number  | Running token savings total for the current day |
+| `tokn_tokens_saved_date`  | string  | ISO date string for tracking daily resets |
+| `tokn_last_site`          | object  | Details of the last active supported AI platform |
+| `tokn_compression_level`  | string  | Active compression mode (`safe`, `balanced`, `aggressive`) |
+| `tokn_api_key`            | string  | Optional client authorization key (if backend auth is enabled) |
 
 ---
 
-## Development Notes
+## Deployment
 
-### DOM Selectors Are Fragile
-
-AI platforms frequently update their DOM structure. If the floating panel doesn't appear:
-
-1. Open DevTools on the AI site
-2. Inspect the text input element
-3. Update the selector in `content.js` (SITES object) and `config.js`
-
-### Production Deployment
-
-Before deploying:
-
-1. Update `API_BASE_URL` in `extension/config.js` to your production API URL
-2. Add rate limiting to `/api/v1/optimize/`
-3. Add authentication (JWT planned)
-4. Build the React frontend for the marketing site
-
----
-
-## Roadmap
-
-- [x] FastAPI backend with Claude optimization
-- [x] Chrome Extension (MV3) with floating panel
-- [x] Real-time token & cost savings
-- [x] Daily savings tracker
-- [ ] React web app / marketing site
-- [ ] JWT authentication
-- [ ] PostgreSQL usage history
-- [ ] Rate limiting on `/optimize`
-- [ ] Chrome Web Store listing
-- [ ] Firefox / Safari extensions
+The backend is configured for automated deployments to **Render** via git push triggers:
+- **Production URL**: `https://tokn-backend-37op.onrender.com`
+- **Environment config**: Requires `GEMINI_API_KEY` and `GEMINI_MODEL=gemini-2.0-flash` (free tier offers 1,500 requests per day).
 
 ---
 
