@@ -5,7 +5,7 @@
 ![Chrome Extension](https://img.shields.io/badge/Manifest-V3-blue)
 ![Python](https://img.shields.io/badge/Python-3.10+-green)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-teal)
-![Gemini](https://img.shields.io/badge/Gemini-2.0--flash-orange)
+![Gemini](https://img.shields.io/badge/Gemini-2.5--flash--lite-orange)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 
 ---
@@ -23,7 +23,7 @@ User types prompt → Extension detects input (800ms debounce)
   IF Balanced / Aggressive (JS + API):
     → Runs compressor.js (lossless pre-cleaning)
     → Sends cleaned prompt + level to FastAPI backend
-    → FastAPI uses Gemini 2.0 Flash (with temperature tuned for level)
+    → FastAPI uses Gemini 2.5 Flash-Lite (with temperature tuned for level)
     → Returns semantic/structural optimization
     
   → Floating panel shows optimized prompt + token/cost savings
@@ -33,7 +33,7 @@ User types prompt → Extension detects input (800ms debounce)
 1. **Content script** auto-detects the AI platform's text input.
 2. **Compressor** executes client-side lossless filler removal, saving tokens and network bandwidth before backend delivery.
 3. **Service worker** manages state, coordinates level routing, and handles backend API proxying.
-4. **Backend** uses Google Gemini 2.0 Flash to semantically structure, condense, and rewrite the prompt.
+4. **Backend** uses Google Gemini 2.5 Flash-Lite to semantically structure, condense, and rewrite the prompt.
 5. **Floating panel** displays the optimized prompt, tokens saved, and cost saved.
 6. **Popup UI** allows switching compression levels, configuring API keys, and tracking daily savings.
 
@@ -89,7 +89,7 @@ pip install -r requirements.txt
 
 # Configure your Gemini API key
 cp .env.example .env
-# Edit .env → set GEMINI_API_KEY=AIzaSy... and GEMINI_MODEL=gemini-2.0-flash
+# Edit .env → set GEMINI_API_KEY=AIzaSy... and GEMINI_MODEL=gemini-2.5-flash-lite
 ```
 
 Start the local server:
@@ -160,7 +160,7 @@ curl -s -X POST http://localhost:8000/api/v1/optimize/ \
   "tokens_saved": 16,
   "cost_saved_usd": 0.000002,
   "compression_ratio": 0.64,
-  "model_used": "gemini-2.0-flash",
+  "model_used": "gemini-2.5-flash-lite",
   "encoding_used": "cl100k_base"
 }
 ```
@@ -202,7 +202,7 @@ content.js  ──TOKn_OPTIMIZE──▸  background.js  ──fetch──▸  F
 
 The backend is configured for automated deployments to **Render** via git push triggers:
 - **Production URL**: `https://tokn-backend-37op.onrender.com`
-- **Environment config**: Requires `GEMINI_API_KEY` and `GEMINI_MODEL=gemini-2.0-flash` (free tier offers 1,500 requests per day).
+- **Environment config**: Requires `GEMINI_API_KEY` and `GEMINI_MODEL=gemini-2.5-flash-lite` (free tier offers 1,500 requests per day once billing is linked).
 
 ---
 
