@@ -5,7 +5,7 @@
 export const TOKN_CONFIG = {
   API_BASE_URL: "https://tokn-pbie.onrender.com",
   OPTIMIZE_PATH: "/api/v1/optimize/",
-  DEBOUNCE_MS: 800,
+  DEBOUNCE_MS: 1500,
   MIN_PROMPT_LENGTH: 20,
 };
 

@@ -8,7 +8,7 @@
 (function () {
   "use strict";
 
-  const DEBOUNCE_MS = 800;
+  const DEBOUNCE_MS = 1500;
   const MIN_PROMPT_LENGTH = 20;
   const PANEL_ID = "tokn-optimizer-panel";
 
@@ -325,7 +325,8 @@
       return;
     }
 
-    showPanelLoading();
+    // Hide the panel immediately while actively typing to stay completely out of the way
+    hidePanel();
 
     state.debounceTimer = window.setTimeout(() => {
       requestOptimization(text, el);
