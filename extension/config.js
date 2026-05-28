@@ -3,7 +3,7 @@
  * Backend URL is the only remote dependency exposed to the extension.
  */
 export const TOKN_CONFIG = {
-  API_BASE_URL: "https://tokn-pbie.onrender.com",
+  API_BASE_URL: "https://tokn-nine.vercel.app",
   OPTIMIZE_PATH: "/api/v1/optimize/",
   DEBOUNCE_MS: 1500,
   MIN_PROMPT_LENGTH: 20,
