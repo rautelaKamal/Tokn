@@ -5,7 +5,7 @@
 ![Chrome Extension](https://img.shields.io/badge/Manifest-V3-blue)
 ![Python](https://img.shields.io/badge/Python-3.10+-green)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-teal)
-![Gemini](https://img.shields.io/badge/Gemini-2.5--flash--lite-orange)
+![Groq](https://img.shields.io/badge/Groq-Llama_3.3_70B-orange)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 
 ---
@@ -23,7 +23,7 @@ User types prompt → Extension detects input (800ms debounce)
   IF Balanced / Aggressive (JS + API):
     → Runs compressor.js (lossless pre-cleaning)
     → Sends cleaned prompt + level to FastAPI backend
-    → FastAPI uses Gemini 2.5 Flash-Lite (with temperature tuned for level)
+    → FastAPI uses Groq Llama 3.3 70B (with temperature tuned for level)
     → Returns semantic/structural optimization
     
   → Floating panel shows optimized prompt + token/cost savings
@@ -33,7 +33,7 @@ User types prompt → Extension detects input (800ms debounce)
 1. **Content script** auto-detects the AI platform's text input.
 2. **Compressor** executes client-side lossless filler removal, saving tokens and network bandwidth before backend delivery.
 3. **Service worker** manages state, coordinates level routing, and handles backend API proxying.
-4. **Backend** uses Google Gemini 2.5 Flash-Lite to semantically structure, condense, and rewrite the prompt.
+4. **Backend** uses Groq (Llama 3.3 70B) to semantically structure, condense, and rewrite the prompt.
 5. **Floating panel** displays the optimized prompt, tokens saved, and cost saved.
 6. **Popup UI** allows switching compression levels, configuring API keys, and tracking daily savings.
 
@@ -44,8 +44,8 @@ User types prompt → Extension detects input (800ms debounce)
 | Level | Engine | Expected Savings | Description & Techniques |
 | :--- | :--- | :--- | :--- |
 | **🟢 Safe** | JS Only (Offline) | ~15% - 30% | Lossless filler stripping, phrase compaction, comparison shortcuts. Zero API cost. |
-| **🟡 Balanced** | JS + Gemini API | ~40% - 55% | Pre-cleaned via JS, then optimized by Gemini (temp=0.2). Smart semantic simplification. |
-| **🔴 Aggressive** | JS + Gemini API | ~55% - 70% | Pre-cleaned via JS, then compressed by Gemini (temp=0.1). High-density rephrasing, colon-stacking. |
+| **🟡 Balanced** | JS + Groq API | ~40% - 55% | Pre-cleaned via JS, then optimized by Llama 3.3 70B (temp=0.2). Smart semantic simplification. |
+| **🔴 Aggressive** | JS + Groq API | ~55% - 70% | Pre-cleaned via JS, then compressed by Llama 3.3 70B (temp=0.1). High-density rephrasing, colon-stacking. |
 
 ---
 
@@ -56,7 +56,7 @@ Tokn/
 ├── backend/              # FastAPI API server
 │   ├── app/
 │   │   ├── api/          # Route handlers (/health, /optimize)
-│   │   ├── core/         # Config, dependencies (Gemini SDK settings)
+│   │   ├── core/         # Config, dependencies (Groq SDK settings)
 │   │   ├── schemas/      # Pydantic models (OptimizeRequest, OptimizeResponse)
 │   │   ├── services/     # Tokenizer, optimizer, cost calculator
 │   │   └── main.py       # App entry point
@@ -87,9 +87,9 @@ cd backend
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
-# Configure your Gemini API key
+# Configure your Groq API key
 cp .env.example .env
-# Edit .env → set GEMINI_API_KEY=AIzaSy... and GEMINI_MODEL=gemini-2.5-flash-lite
+# Edit .env → set GROQ_API_KEY=gsk_... (get free key at https://console.groq.com)
 ```
 
 Start the local server:
@@ -151,16 +151,16 @@ curl -s -X POST http://localhost:8000/api/v1/optimize/ \
   "optimized_prompt": "FastAPI REST API: user auth, JSON responses.",
   "tokens_before": {
     "tokens": 25,
-    "estimated_cost_usd": 0.00000375
+    "estimated_cost_usd": 0.0
   },
   "tokens_after": {
     "tokens": 9,
-    "estimated_cost_usd": 0.00000135
+    "estimated_cost_usd": 0.0
   },
   "tokens_saved": 16,
-  "cost_saved_usd": 0.000002,
+  "cost_saved_usd": 0.0,
   "compression_ratio": 0.64,
-  "model_used": "gemini-2.5-flash-lite",
+  "model_used": "llama-3.3-70b-versatile",
   "encoding_used": "cl100k_base"
 }
 ```
@@ -178,7 +178,7 @@ content.js  ──TOKn_OPTIMIZE──▸  background.js  ──fetch──▸  F
 
 ### Key Design Decisions
 
-- **No API keys in extension code** — all Gemini API interactions are handled on the server.
+- **No API keys in extension code** — all Groq API interactions are handled on the server.
 - **800ms debounce** — prevents excessive API requests during active typing.
 - **Hybrid Optimization Pipeline** — client-side JS pre-cleans prompts for API calls, maximizing token efficiency and reducing prompt payloads.
 - **Offline Safe Mode** — allows zero-latency, local-only compression without consuming API key quotas.
@@ -202,7 +202,7 @@ content.js  ──TOKn_OPTIMIZE──▸  background.js  ──fetch──▸  F
 
 The backend is configured for automated deployments to **Render** via git push triggers:
 - **Production URL**: `https://tokn-backend-37op.onrender.com`
-- **Environment config**: Requires `GEMINI_API_KEY` and `GEMINI_MODEL=gemini-2.5-flash-lite` (free tier offers 1,500 requests per day once billing is linked).
+- **Environment config**: Requires `GROQ_API_KEY` and `GROQ_MODEL=llama-3.3-70b-versatile` (free tier offers 14,400 requests per day).
 
 ---
 

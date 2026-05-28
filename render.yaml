@@ -12,8 +12,8 @@ services:
         value: production
       - key: DEBUG
         value: "false"
-      - key: GEMINI_MODEL
-        value: gemini-2.5-flash-lite
+      - key: GROQ_MODEL
+        value: llama-3.3-70b-versatile
       - key: CORS_ORIGINS
         value: '["chrome-extension://*"]'
       - key: RATE_LIMIT
@@ -25,10 +25,11 @@ services:
       - key: TIKTOKEN_ENCODING
         value: cl100k_base
       - key: INPUT_COST_PER_MILLION
-        value: "0.15"
+        value: "0.0"
       - key: OUTPUT_COST_PER_MILLION
-        value: "0.60"
-      - key: GEMINI_API_KEY
+        value: "0.0"
+      - key: GROQ_API_KEY
         sync: false  # must be set manually in dashboard
       - key: PYTHON_VERSION
         value: "3.11.0"
+

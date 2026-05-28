@@ -74,7 +74,7 @@ async def optimize_prompt(
     optimizer: PromptOptimizerService = Depends(get_optimizer_service),
 ) -> OptimizeResponse:
     """
-    Compress and rephrase a prompt via Claude, then return token and cost deltas.
+    Compress and rephrase a prompt via Groq (Llama 3.3 70B), then return token and cost deltas.
     Results are cached for 1 hour to avoid redundant API calls.
     """
     original = payload.prompt.strip()

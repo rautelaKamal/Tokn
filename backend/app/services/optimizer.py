@@ -1,5 +1,4 @@
-from google import genai
-from google.genai import types
+from groq import AsyncGroq
 
 from app.core.config import Settings
 
@@ -97,17 +96,17 @@ class OptimizerError(Exception):
 class PromptOptimizerService:
     def __init__(self, settings: Settings) -> None:
         self._settings = settings
-        self._model_name = settings.gemini_model
+        self._model_name = settings.groq_model
         self._client = None
 
-    def _get_client(self) -> genai.Client:
-        if not self._settings.gemini_api_key:
+    def _get_client(self) -> AsyncGroq:
+        if not self._settings.groq_api_key:
             raise OptimizerError(
-                "GEMINI_API_KEY is not configured. Set it in your .env file. "
-                "Get a free key at https://aistudio.google.com"
+                "GROQ_API_KEY is not configured. Set it in your .env file. "
+                "Get a free key at https://console.groq.com"
             )
         if self._client is None:
-            self._client = genai.Client(api_key=self._settings.gemini_api_key)
+            self._client = AsyncGroq(api_key=self._settings.groq_api_key)
         return self._client
 
     @property
@@ -115,7 +114,7 @@ class PromptOptimizerService:
         return self._model_name
 
     async def optimize(self, raw_prompt: str, level: str = "balanced") -> str:
-        """Preprocess → Gemini compress → postprocess.
+        """Preprocess → Groq (Llama 3.3 70B) compress → postprocess.
         Level 'aggressive' uses lower temperature for max compression."""
         cleaned = self._preprocess(raw_prompt)
 
@@ -123,19 +122,19 @@ class PromptOptimizerService:
         temperature = 0.1 if level == "aggressive" else 0.2
 
         try:
-            response = await self._get_client().aio.models.generate_content(
+            response = await self._get_client().chat.completions.create(
                 model=self._model_name,
-                contents=f"{SYSTEM_PROMPT}\n\n{cleaned}",
-                config=types.GenerateContentConfig(
-                    max_output_tokens=512,
-                    temperature=temperature,
-                    thinking_config=types.ThinkingConfig(thinking_budget=0),
-                ),
+                messages=[
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": cleaned},
+                ],
+                max_tokens=512,
+                temperature=temperature,
             )
         except Exception as exc:
-            raise OptimizerError(f"Gemini API error: {exc}") from exc
+            raise OptimizerError(f"Groq API error: {exc}") from exc
 
-        optimized = self._postprocess(response.text or "")
+        optimized = self._postprocess(response.choices[0].message.content or "")
         if not optimized:
             raise OptimizerError("Model returned an empty optimization.")
         return optimized
@@ -145,7 +144,7 @@ class PromptOptimizerService:
     @staticmethod
     def _preprocess(text: str) -> str:
         """Strip filler, apply abbreviations, and compact structure.
-        This saves input tokens and gives Gemini a cleaner signal."""
+        This saves input tokens and gives the model a cleaner signal."""
         import re
 
         s = text.strip()

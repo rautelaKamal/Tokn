@@ -26,9 +26,9 @@ class Settings(BaseSettings):
         ]
     )
 
-    # Gemini (Google AI Studio — free tier: 1,500 req/day with 2.5-flash-lite once billing is enabled)
-    gemini_api_key: str = ""
-    gemini_model: str = "gemini-2.5-flash-lite"
+    # Groq (free tier: 14,400 req/day, 30 RPM with Llama 3.3 70B)
+    groq_api_key: str = ""
+    groq_model: str = "llama-3.3-70b-versatile"
 
     # Simple API-key auth for extension → backend calls
     tokn_api_key: str = ""  # Set in .env; empty = auth disabled (dev only)
@@ -42,9 +42,9 @@ class Settings(BaseSettings):
 
     tiktoken_encoding: str = "cl100k_base"
 
-    # USD per 1M tokens (Gemini 2.5 Flash pricing)
-    input_cost_per_million: float = 0.15
-    output_cost_per_million: float = 0.60
+    # USD per 1M tokens (Groq Llama 3.3 70B — free tier, no cost)
+    input_cost_per_million: float = 0.0
+    output_cost_per_million: float = 0.0
 
     jwt_secret_key: str = "change-me-in-production"
     jwt_algorithm: str = "HS256"
