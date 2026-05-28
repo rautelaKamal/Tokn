@@ -7,13 +7,16 @@ const STORAGE_KEYS = {
   lastSite: "tokn_last_site",
   apiKey: "tokn_api_key",
   level: "tokn_compression_level",
+  devMode: "tokn_dev_mode",
 };
 
 const els = {
   toggle: document.getElementById("enabled-toggle"),
+  devToggle: document.getElementById("dev-mode-toggle"),
   tokensSaved: document.getElementById("tokens-saved"),
   detectedSite: document.getElementById("detected-site"),
   statusHint: document.getElementById("status-hint"),
+  devHint: document.getElementById("dev-hint"),
   apiUrl: document.getElementById("api-url"),
   apiKeyInput: document.getElementById("api-key-input"),
   apiKeySave: document.getElementById("api-key-save"),
@@ -32,6 +35,21 @@ async function init() {
 
   const apiHost = TOKN_CONFIG.API_BASE_URL.replace(/^https?:\/\//, "");
   els.apiUrl.textContent = apiHost;
+
+  // Load saved Dev Mode state
+  chrome.storage.local.get([STORAGE_KEYS.devMode], (data) => {
+    const isDev = data[STORAGE_KEYS.devMode] === true;
+    els.devToggle.checked = isDev;
+    updateApiUrlLabel(isDev);
+  });
+
+  // Dev mode toggle handler
+  els.devToggle.addEventListener("change", () => {
+    const isDev = els.devToggle.checked;
+    chrome.storage.local.set({ [STORAGE_KEYS.devMode]: isDev }, () => {
+      updateApiUrlLabel(isDev);
+    });
+  });
 
   // Load saved API key
   chrome.storage.local.get([STORAGE_KEYS.apiKey], (data) => {
@@ -93,6 +111,11 @@ async function init() {
     }
     if (changes[STORAGE_KEYS.level]) {
       setActiveLevel(changes[STORAGE_KEYS.level].newValue);
+    }
+    if (changes[STORAGE_KEYS.devMode]) {
+      const isDev = changes[STORAGE_KEYS.devMode].newValue === true;
+      els.devToggle.checked = isDev;
+      updateApiUrlLabel(isDev);
     }
   });
 
@@ -167,4 +190,9 @@ function sendMessage(message) {
       resolve(response);
     });
   });
+}
+
+function updateApiUrlLabel(isDev) {
+  const host = isDev ? "localhost:8000" : TOKN_CONFIG.API_BASE_URL.replace(/^https?:\/\//, "");
+  els.apiUrl.textContent = host;
 }

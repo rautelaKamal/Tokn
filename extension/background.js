@@ -13,6 +13,7 @@ const STORAGE_KEYS = {
   lastSite: "tokn_last_site",
   apiKey: "tokn_api_key",
   level: "tokn_compression_level",
+  devMode: "tokn_dev_mode",
 };
 
 // ---------- Install ----------
@@ -108,6 +109,7 @@ async function handleOptimize({ prompt, siteId, siteName }) {
     STORAGE_KEYS.enabled,
     STORAGE_KEYS.apiKey,
     STORAGE_KEYS.level,
+    STORAGE_KEYS.devMode,
   ]);
 
   if (data[STORAGE_KEYS.enabled] === false) {
@@ -169,7 +171,9 @@ async function handleOptimize({ prompt, siteId, siteName }) {
     headers["X-Tokn-Key"] = apiKey;
   }
 
-  const url = `${TOKN_CONFIG.API_BASE_URL}${TOKN_CONFIG.OPTIMIZE_PATH}`;
+  const isDev = data[STORAGE_KEYS.devMode] === true;
+  const baseUrl = isDev ? "http://127.0.0.1:8000" : TOKN_CONFIG.API_BASE_URL;
+  const url = `${baseUrl}${TOKN_CONFIG.OPTIMIZE_PATH}`;
   const response = await fetch(url, {
     method: "POST",
     headers,
