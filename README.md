@@ -202,7 +202,7 @@ content.js  ──TOKn_OPTIMIZE──▸  background.js  ──fetch──▸  F
 
 The backend is configured for automated deployments to **Vercel** via git push triggers:
 - **Production URL**: `https://tokn-nine.vercel.app`
-- **Environment config**: Requires `GROQ_API_KEY` and `GROQ_MODEL=llama-3.3-70b-versatile` (free tier offers 14,400 requests per day).
+- **Environment config**: Requires `GROQ_API_KEY` and `GROQ_MODEL=llama-3.1-8b-instant` (free tier offers 14,400 requests per day).
 
 ---
 

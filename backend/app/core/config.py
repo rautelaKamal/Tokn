@@ -28,7 +28,7 @@ class Settings(BaseSettings):
 
     # Groq (free tier: 14,400 req/day, 30 RPM with Llama 3.3 70B)
     groq_api_key: str = ""
-    groq_model: str = "llama-3.3-70b-versatile"
+    groq_model: str = "llama-3.1-8b-instant"
 
     # Simple API-key auth for extension → backend calls
     tokn_api_key: str = ""  # Set in .env; empty = auth disabled (dev only)
